@@ -1,0 +1,207 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090d18">
+<title>NovaOS</title>
+<style>
+:root{--bg:#090d18;--panel:#141e32;--blue:#67d9ff;--text:#f5f7ff;--muted:#9cacc9}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#253961,#090d18 60%);color:var(--text);font-family:Arial,sans-serif;min-height:100vh}
+button,input{font:inherit}
+button{cursor:pointer;color:inherit}
+#app{max-width:520px;margin:auto;padding:22px 18px 105px}
+header{display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:23px;font-weight:900;letter-spacing:2px}
+.logo span{color:var(--blue)}
+.status{font-size:11px;color:var(--muted)}
+.page{display:none}
+.page.active{display:block;animation:show .2s ease}
+@keyframes show{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+.hero{padding:40px 0 25px}
+.muted{font-size:13px;color:var(--muted)}
+.clock{font-size:65px;letter-spacing:-3px;font-weight:300;margin:8px 0}
+.date{text-transform:capitalize;color:#bdcbe5}
+.panel{margin:15px 0;padding:20px;border:1px solid #344969;border-radius:23px;background:linear-gradient(140deg,#263b61b5,#111a2bd9)}
+.panel h2{margin:10px 0}
+.panel p{font-size:13px;color:#c0cce2;line-height:1.6}
+.section{margin:28px 0 16px;font-size:12px;letter-spacing:2px;color:#b8c8e5}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px 8px}
+.appbtn{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;padding:0}
+.appicon{width:55px;height:55px;border-radius:18px;display:grid;place-items:center;font-size:25px;background:linear-gradient(145deg,#2c456f,#151e32);border:1px solid #ffffff20}
+.appbtn:active .appicon{transform:scale(.9)}
+.applabel{font-size:11px;text-align:center;overflow-wrap:anywhere}
+.title{font-size:29px;margin:35px 0 8px}
+.search{width:100%;margin:22px 0;padding:15px;border:1px solid #354765;border-radius:15px;background:#121b2d;color:white;outline:none}
+.search:focus{border-color:var(--blue)}
+.primary{background:#193651;color:var(--blue);border:1px solid #355776;border-radius:13px;padding:12px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:17px 0;border-bottom:1px solid #28334a}
+.item small{display:block;color:var(--muted);margin-top:5px}
+.nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(94%,480px);display:flex;justify-content:space-around;padding:10px 4px calc(10px + env(safe-area-inset-bottom));border:1px solid #ffffff22;border-radius:23px;background:#121a2aee;backdrop-filter:blur(18px);z-index:5}
+.nav button{border:0;background:none;color:#9aa9c6;border-radius:13px;padding:7px 9px;min-width:60px;font-size:11px}
+.nav button b{display:block;font-size:21px;margin-bottom:4px}
+.nav button.active{background:#263956;color:var(--blue)}
+.toast{display:none;position:fixed;bottom:105px;left:50%;transform:translateX(-50%);max-width:88%;width:max-content;padding:13px 17px;border:1px solid #4d6a92;border-radius:14px;background:#243653;z-index:10;font-size:13px}
+.toast.show{display:block}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="logo">NOVA<span>OS</span></div>
+  <div class="status">● SYSTÈME ACTIF</div>
+</header>
+
+<section class="page active" id="home">
+  <div class="hero">
+    <div class="muted">Bienvenue dans ton espace</div>
+    <div class="clock" id="clock">00:00</div>
+    <div class="date" id="date"></div>
+  </div>
+  <div class="panel">
+    <div class="muted">✦ TON UNIVERS</div>
+    <h2>Tout commence ici.</h2>
+    <p>Découvre tes applications et personnalise ton espace NovaOS.</p>
+    <button class="primary" onclick="navigate('apps')">Explorer les applications ↗</button>
+  </div>
+  <div class="section">FAVORIS</div>
+  <div class="grid" id="favorites"></div>
+</section>
+
+<section class="page" id="apps">
+  <h1 class="title">Applications</h1>
+  <div class="muted">Tes raccourcis NovaOS</div>
+  <input class="search" id="appSearch" placeholder="⌕ Rechercher une application..." oninput="renderApps()">
+  <div class="grid" id="appGrid"></div>
+</section>
+
+<section class="page" id="search">
+  <h1 class="title">Recherche</h1>
+  <div class="muted">Trouve une application dans NovaOS.</div>
+  <input class="search" id="mainSearch" placeholder="Rechercher..." oninput="searchApps()">
+  <div class="grid" id="searchGrid"></div>
+</section>
+
+<section class="page" id="settings">
+  <h1 class="title">Réglages</h1>
+  <div class="muted">Personnalise ton interface NovaOS.</div>
+  <div class="panel">
+    <div class="item"><div>🌙 Mode sombre<small>Interface NovaOS</small></div><button class="primary" onclick="toggleTheme()">Changer</button></div>
+    <div class="item"><div>🔵 Couleur bleue<small>Couleur d’accentuation</small></div><button class="primary" onclick="changeColor()">Changer</button></div>
+    <div class="item"><div>🕒 Horloge<small>Afficher l’heure en direct</small></div><span>ACTIVE</span></div>
+    <div class="item"><div>ℹ️ À propos<small>NovaOS version 1.0</small></div><button class="primary" onclick="notify('NovaOS 1.0 — Interface web')">Voir</button></div>
+  </div>
+  <button class="primary" onclick="navigate('home')">Retour à l’accueil</button>
+</section>
+
+<nav class="nav">
+  <button class="active" data-page="home" onclick="navigate('home')"><b>⌂</b>Accueil</button>
+  <button data-page="apps" onclick="navigate('apps')"><b>▦</b>Apps</button>
+  <button data-page="search" onclick="navigate('search')"><b>⌕</b>Recherche</button>
+  <button data-page="settings" onclick="navigate('settings')"><b>⚙</b>Réglages</button>
+</nav>
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+const applications=[
+ {name:"Internet",icon:"🌐",url:"https://www.google.com"},
+ {name:"YouTube",icon:"▶️",url:"https://m.youtube.com"},
+ {name:"Musique",icon:"♫",url:"https://music.youtube.com"},
+ {name:"Jeux",icon:"🎮",url:"https://play.google.com/store/games"},
+ {name:"Photos",icon:"🖼️",url:null},
+ {name:"Fichiers",icon:"📁",url:null},
+ {name:"Téléphone",icon:"☎️",url:null},
+ {name:"Messages",icon:"✉️",url:null},
+ {name:"Réglages",icon:"⚙️",url:null},
+ {name:"Calculatrice",icon:"🧮",url:null},
+ {name:"Calendrier",icon:"📅",url:null},
+ {name:"Appareil photo",icon:"📷",url:null}
+];
+
+function navigate(page){
+ document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+ document.getElementById(page).classList.add("active");
+ document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ window.scrollTo(0,0);
+ if(page==="apps")renderApps();
+}
+
+function notify(message){
+ const toast=document.getElementById("toast");
+ toast.textContent=message;
+ toast.classList.add("show");
+ clearTimeout(window.toastTimer);
+ window.toastTimer=setTimeout(()=>toast.classList.remove("show"),2500);
+}
+
+function openApp(name){
+ const app=applications.find(a=>a.name===name);
+ if(app && app.url){
+   window.open(app.url,"_blank");
+ }else if(name==="Réglages"){
+   notify("Les réglages Android nécessitent une fonction native dans l’APK.");
+ }else{
+   notify(name+" : ouverture native non disponible dans cette version.");
+ }
+}
+
+function makeApp(app){
+ const button=document.createElement("button");
+ button.className="appbtn";
+ button.innerHTML='<span class="appicon">'+app.icon+'</span><span class="applabel">'+app.name+'</span>';
+ button.onclick=()=>openApp(app.name);
+ return button;
+}
+
+function renderApps(){
+ const grid=document.getElementById("appGrid");
+ const q=(document.getElementById("appSearch").value||"").toLowerCase();
+ grid.replaceChildren();
+ applications.filter(a=>a.name.toLowerCase().includes(q)).forEach(a=>grid.appendChild(makeApp(a)));
+}
+
+function searchApps(){
+ const q=document.getElementById("mainSearch").value.toLowerCase();
+ const grid=document.getElementById("searchGrid");
+ grid.replaceChildren();
+ applications.filter(a=>a.name.toLowerCase().includes(q)).forEach(a=>grid.appendChild(makeApp(a)));
+}
+
+function toggleTheme(){
+ const dark=document.body.dataset.light!=="true";
+ document.body.dataset.light=dark;
+ document.documentElement.style.setProperty("--bg",dark?"#eaf0fa":"#090d18");
+ document.documentElement.style.setProperty("--text",dark?"#101a2c":"#f5f7ff");
+ document.documentElement.style.setProperty("--muted",dark?"#4d5c76":"#9cacc9");
+ document.body.style.background=dark?"#eaf0fa":"";
+ notify(dark?"Mode clair activé":"Mode sombre activé");
+}
+
+function changeColor(){
+ const colors=["#67d9ff","#a78bfa","#70f0b2","#ffb86b","#ff83bb"];
+ const root=document.documentElement;
+ const current=root.style.getPropertyValue("--blue")||"#67d9ff";
+ const next=colors[(colors.indexOf(current)+1)%colors.length];
+ root.style.setProperty("--blue",next);
+ notify("Couleur NovaOS modifiée");
+}
+
+function updateClock(){
+ const now=new Date();
+ document.getElementById("clock").textContent=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+ document.getElementById("date").textContent=now.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"});
+}
+
+const favorites=document.getElementById("favorites");
+["Internet","YouTube","Musique","Jeux"].forEach(name=>{
+ favorites.appendChild(makeApp(applications.find(a=>a.name===name)));
+});
+renderApps();
+updateClock();
+setInterval(updateClock,1000);
+</script>
+</body>
+</html>
